@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Interactive Code Explanation Assistant</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f9f9f9;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      color: #333; /* Default text color */
+    }
+    .page-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+    /* Styles for side images (left and right) */
+    .side-image {
+      flex: 0 0 auto;
+      margin: 0 20px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .side-image img {
+      width: 300px; /* Adjust size as needed */
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+    .container {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      width: 90%;
+      max-width: 600px;
+      position: relative;
+    }
+    h1 {
+      text-align: center;
+      color: #333;
+    }
+    textarea {
+      width: 100%;
+      height: 170px; /* Increased height */
+      padding: 1px;
+      margin: 10px 0;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      resize: none;
+      font-size: 16px;
+      font-family: monospace; /* Monospace font for code */
+    }
+    button {
+      width: 100%;
+      padding: 10px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    .explanation {
+      margin-top: 20px;
+      font-size: 16px;
+      line-height: 1.6;
+      color: #333; /* Ensure text color is dark */
+    }
+    .section-title {
+      font-weight: bold;
+      margin-bottom: 5px;
+      color: #007bff; /* Highlight section titles */
+    }
+    pre {
+      background-color: #f4f4f4;
+      padding: 10px;
+      border-radius: 5px;
+      overflow-x: auto;
+      font-family: monospace; /* Monospace font for code */
+      color: #333; /* Ensure code block text is visible */
+    }
+    .hidden {
+      display: none;
+    }
+    .fun-fact {
+      margin-top: 20px;
+      padding: 10px;
+      background-color: #e3f2fd;
+      border-left: 5px solid #0d47a1;
+      font-style: italic;
+      color: #333; /* Ensure fun fact text is visible */
+    }
+    .loading {
+      text-align: center;
+      margin-top: 20px;
+      color: #007bff;
+    }
+    .follow-up {
+      margin-top: 20px;
+    }
+    .follow-up textarea {
+      height: 80px; /* Smaller height for follow-up input */
+    }
+  </style>
+</head>
+<body>
+ <!-- Inside your index.html body -->
+ <div class="page-container">
+  <!-- Left Side AI Coding GIF -->
+  <div class="side-image">
+    <img src="/static/images/aicoding.gif" alt="AI Coding Animation" />
+  </div>
+  <div class="container">
+    <h1>🤖 DeCodeIt</h1>
+    <h2>Interactive Code Explanation Assistant</h2>
+    <textarea id="code" placeholder="Enter your code snippet here..."></textarea>
+    <button id="submit-btn">Explain Code</button>
+    <div id="loading" class="loading hidden">Loading...</div>
+    <div id="results" class="explanation hidden">
+      <div class="section" id="summary-section">
+        <div class="section-title">Summary</div>
+        <p id="summary" style="color: black;"></p>
+      </div>
+      <div class="section" id="dry-run-section">
+        <div class="section-title">Dry Run</div>
+        <pre id="dry-run" style="color: black;"></pre>
+      </div>
+      <div class="section" id="similar-questions-section">
+        <div class="section-title">Similar Coding Questions</div>
+        <p id="similar-questions" style="color: black;"></p>
+      </div>
+      <div class="section" id="fun-fact-section">
+        <div class="section-title">Fun Fact</div>
+        <p id="fun-fact" class="fun-fact" style="color: black;"></p>
+      </div>
+    </div>
+    <div id="follow-up-section" class="follow-up hidden">
+      <h3>Ask a Follow-Up Question</h3>
+      <textarea id="follow-up-question" placeholder="Enter your follow-up question here..."></textarea>
+      <button id="follow-up-btn">Submit</button>
+    </div>
+    <div id="error" class="hidden" style="color: red;"></div>
+  </div>
+  <div class="side-image">
+    <img src="/static/images/human.gif" alt="Human Taking Notes Animation" />
+  </div>
+</div>
+
+  <script>
+    let conversationId = Date.now();
+
+    // Function to handle the main code explanation request
+    document.getElementById('submit-btn').addEventListener('click', async () => {
+      const codeInput = document.getElementById('code').value.trim();
+      const resultsDiv = document.getElementById('results');
+      const errorDiv = document.getElementById('error');
+      const loadingDiv = document.getElementById('loading');
+      const followUpSection = document.getElementById('follow-up-section');
+      
+      // Clear previous results and errors
+      resultsDiv.classList.add('hidden');
+      errorDiv.classList.add('hidden');
+      followUpSection.classList.add('hidden');
+      errorDiv.textContent = '';
+
+      if (!codeInput) {
+        errorDiv.textContent = 'Please enter a code snippet.';
+        errorDiv.classList.remove('hidden');
+        return;
+      }
+
+      try {
+        // Show loading state
+        loadingDiv.classList.remove('hidden');
+        document.getElementById('submit-btn').disabled = true;
+
+        // Send request to backend
+        const response = await fetch('/explain-code', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ conversation_id: conversationId, code: codeInput }),
+        });
+
+        const data = await response.json();
+        if (response.ok) {
+          // Parse and display the explanation
+          const explanation = data.explanation;
+          console.log("Backend Response:", explanation); // Debugging
+
+          const summaryMatch = explanation.match(/Summary:\s*(.*?)(?=Dry Run|$)/s);
+          const dryRunMatch = explanation.match(/Dry Run:\s*(.*?)(?=Similar Coding Questions|$)/s);
+          const similarQuestionsMatch = explanation.match(/Similar Coding Questions:\s*(.*?)(?=Fun Fact|$)/s);
+          const funFactMatch = explanation.match(/Fun Fact:\s*(.*)/s);
+
+          document.getElementById('summary').textContent = summaryMatch ? summaryMatch[1].trim() : 'No summary available.';
+          document.getElementById('dry-run').textContent = dryRunMatch ? dryRunMatch[1].trim() : 'No dry run available.';
+          document.getElementById('similar-questions').textContent = similarQuestionsMatch ? similarQuestionsMatch[1].trim() : 'No similar questions available.';
+          document.getElementById('fun-fact').textContent = funFactMatch ? funFactMatch[1].trim() : 'No fun fact available.';
+
+          resultsDiv.classList.remove('hidden'); // Ensure results are visible
+          followUpSection.classList.remove('hidden'); // Enable follow-up section
+        } else {
+          errorDiv.textContent = data.error || 'An error occurred while generating the explanation.';
+          errorDiv.classList.remove('hidden');
+        }
+      } catch (err) {
+        errorDiv.textContent = 'Failed to connect to the server. Please try again later.';
+        errorDiv.classList.remove('hidden');
+      } finally {
+        // Hide loading state
+        loadingDiv.classList.add('hidden');
+        document.getElementById('submit-btn').disabled = false;
+      }
+    });
+
+    // Function to handle follow-up questions
+    document.getElementById('follow-up-btn').addEventListener('click', async () => {
+      const followUpQuestion = document.getElementById('follow-up-question').value.trim();
+      const errorDiv = document.getElementById('error');
+      const resultsDiv = document.getElementById('results');
+
+      // Clear previous errors
+      errorDiv.classList.add('hidden');
+      errorDiv.textContent = '';
+
+      if (!followUpQuestion) {
+        errorDiv.textContent = 'Please enter a follow-up question.';
+        errorDiv.classList.remove('hidden');
+        return;
+      }
+
+      try {
+        // Show loading state
+        document.getElementById('follow-up-btn').disabled = true;
+
+        // Send request to backend
+        const response = await fetch('/follow-up', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ conversation_id: conversationId, question: followUpQuestion }),
+        });
+
+
+        const data = await response.json();
+        if (response.ok) {
+          // Display the follow-up response
+          const followUpResponse = data.response;
+          document.getElementById('similar-questions').textContent += `\n\nQ: ${followUpQuestion}\nA: ${followUpResponse}`;
+          document.getElementById('follow-up-question').value = ''; // Clear input
+        } else {
+          errorDiv.textContent = data.error || 'An error occurred while generating the response.';
+          errorDiv.classList.remove('hidden');
+        }
+      } catch (err) {
+        errorDiv.textContent = 'Failed to connect to the server. Please try again later.';
+        errorDiv.classList.remove('hidden');
+      } finally {
+        // Reset button state
+        document.getElementById('follow-up-btn').disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
