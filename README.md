@@ -51,14 +51,12 @@ The application will start running at http://127.0.0.1:5000/. Open this URL in y
 ```plaintext
 DeCodeIt/
 ├── app.py                  # Flask backend and AI integration
-├── requirements.txt        # Python dependencies
 ├── .env                    # Environment variables (API key)
 ├── static/                 # Static files (CSS, images, etc.)
 │   └── images/             # GIFs and other images
 ├── templates/              # HTML templates
 │   └── index.html          # Main frontend interface
 ├── README.md               # Project documentation
-└── .gitignore              # Files to ignore in Git
 ```
 
 ## Usage 🖥️
